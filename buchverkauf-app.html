@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BookSell Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --rust: #c4622d;
+    --rust-light: #e8845a;
+    --gold: #b8941f;
+    --sage: #5a7a6a;
+    --muted: #8a8070;
+    --border: #d4cfc4;
+    --white: #fdfaf5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(196,98,45,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(90,122,106,0.06) 0%, transparent 60%);
+  }
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 1.2rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border-bottom: 3px solid var(--rust);
+  }
+  .logo-mark {
+    width: 44px; height: 44px;
+    background: var(--rust);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--white);
+    flex-shrink: 0;
+  }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 1.4rem; }
+  header p { font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 0.1rem; }
+  .header-right { margin-left: auto; display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+  .stat-pill {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 0.3rem 0.8rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--paper);
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .stat-pill span { color: var(--rust-light); font-weight: 500; }
+  .btn-settings {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--paper);
+    padding: 0.3rem 0.85rem;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    transition: background 0.2s;
+  }
+  .btn-settings:hover { background: rgba(255,255,255,0.2); }
+
+  .ebay-status-banner {
+    padding: 0.6rem 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.74rem;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .ebay-status-banner.connected { background: rgba(90,122,106,0.1); border-bottom: 1px solid rgba(90,122,106,0.25); color: var(--sage); }
+  .ebay-status-banner.disconnected { background: rgba(196,98,45,0.07); border-bottom: 1px solid rgba(196,98,45,0.18); color: var(--rust); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .connected .status-dot { background: var(--sage); box-shadow: 0 0 5px var(--sage); }
+  .disconnected .status-dot { background: var(--rust); }
+  .banner-link { margin-left: auto; color: inherit; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,20,16,0.75);
+    z-index: 500; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 2.25rem;
+    width: 100%; max-width: 540px;
+    position: relative;
+    border-top: 4px solid var(--rust);
+    animation: fadeUp 0.25s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  .modal-close { position: absolute; top: 1rem; right: 1.1rem; background: none; border: none; cursor: pointer; font-size: 1.15rem; color: var(--muted); }
+  .modal h2 { font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 0.4rem; }
+  .modal > p { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.65; }
+  .steps-mini {
+    background: var(--cream);
+    border-left: 3px solid var(--rust);
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.78rem;
+    line-height: 2;
+    font-family: 'DM Mono', monospace;
+  }
+  .steps-mini a { color: var(--rust); }
+  .modal-field { margin-bottom: 0.9rem; }
+  .modal-field label { display: block; font-family: 'DM Mono', monospace; font-size: 0.66rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.35rem; }
+  .modal-field input, .modal-field select { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border); background: var(--white); font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .modal-field input:focus { border-color: var(--rust); }
+  .modal-field .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; font-family: 'DM Mono', monospace; }
+  .modal-actions { display: flex; gap: 0.7rem; margin-top: 1.25rem; }
+  .modal-note { font-size: 0.7rem; color: var(--muted); margin-top: 0.9rem; font-family: 'DM Mono', monospace; }
+
+  /* Layout */
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+  .two-col { display: grid; grid-template-columns: 390px 1fr; gap: 2rem; align-items: start; }
+
+  .panel { background: var(--white); border: 1px solid var(--border); padding: 1.6rem; position: relative; }
+  .panel::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--rust); }
+  .panel-title { font-family: 'Playfair Display', serif; font-size: 1rem; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 0.55rem; }
+  .step-badge { background: var(--rust); color: white; width: 19px; height: 19px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 0.63rem; font-weight: 500; flex-shrink: 0; }
+
+  .drop-zone { border: 2px dashed var(--border); padding: 1.8rem 1.25rem; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--cream); position: relative; }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--rust); background: rgba(196,98,45,0.04); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+  .drop-zone h3 { font-family: 'Playfair Display', serif; font-size: 0.9rem; margin-bottom: 0.25rem; }
+  .drop-zone p { font-size: 0.72rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  #preview-container { display: none; margin-top: 0.9rem; }
+  #book-preview { width: 100%; max-height: 220px; object-fit: contain; border: 1px solid var(--border); background: var(--cream); }
+  .preview-replace { margin-top: 0.55rem; text-align: center; font-size: 0.7rem; color: var(--rust); cursor: pointer; font-family: 'DM Mono', monospace; text-decoration: underline; }
+
+  .btn-analyze { width: 100%; margin-top: 1.1rem; padding: 0.82rem; background: var(--rust); color: white; border: none; font-family: 'Playfair Display', serif; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+  .btn-analyze:hover:not(:disabled) { background: #a8521f; }
+  .btn-analyze:disabled { background: var(--muted); cursor: not-allowed; }
+  .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-state { display: none; padding: 2.5rem 1.5rem; text-align: center; }
+  .big-spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--rust); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 0.9rem; }
+  .loading-state > p { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted); }
+  .loading-steps { margin-top: 0.9rem; text-align: left; display: inline-block; }
+  .loading-step { font-family: 'DM Mono', monospace; font-size: 0.71rem; color: var(--muted); padding: 0.2rem 0; display: flex; align-items: center; gap: 0.45rem; transition: color 0.3s; }
+  .loading-step.active { color: var(--rust); }
+  .loading-step.done { color: var(--sage); }
+
+  .results-panel { display: none; }
+  .info-card, .price-section, .listing-preview { background: var(--white); border: 1px solid var(--border); padding: 1.4rem 1.6rem; margin-bottom: 1.1rem; position: relative; animation: fadeUp 0.4s ease; }
+  .info-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--sage); }
+  .price-section::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--gold); }
+  .listing-preview::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--ink); }
+
+  .book-title-display { font-family: 'Playfair Display', serif; font-size: 1.25rem; line-height: 1.3; margin-bottom: 0.2rem; }
+  .book-author-display { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--rust); margin-bottom: 1rem; }
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem; }
+  .meta-item label { display: block; font-family: 'DM Mono', monospace; font-size: 0.63rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.12rem; }
+  .meta-item .val { font-size: 0.82rem; font-weight: 500; }
+  .description-block { background: var(--cream); border-left: 3px solid var(--border); padding: 0.8rem 1rem; font-size: 0.8rem; line-height: 1.7; color: #3a3530; font-style: italic; margin-bottom: 1rem; }
+
+  .field-group { margin-bottom: 0.8rem; }
+  .field-group label { display: block; font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.3rem; }
+  .field-group input, .field-group textarea, .field-group select { width: 100%; padding: 0.58rem 0.78rem; border: 1px solid var(--border); background: var(--white); font-family: 'DM Sans', sans-serif; font-size: 0.83rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
+  .field-group input:focus, .field-group textarea:focus, .field-group select:focus { border-color: var(--rust); }
+  .field-group textarea { resize: vertical; min-height: 70px; }
+
+  .price-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.7rem; }
+  .price-suggested .plabel { font-family: 'DM Mono', monospace; font-size: 0.63rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; display: block; margin-bottom: 0.2rem; }
+  .price-big { font-family: 'Playfair Display', serif; font-size: 1.9rem; color: var(--rust); line-height: 1; }
+  .price-input-wrap { flex: 1; }
+  .price-input-wrap label { font-family: 'DM Mono', monospace; font-size: 0.63rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; display: block; margin-bottom: 0.2rem; }
+  .price-input-wrap input { width: 100%; padding: 0.52rem 0.78rem; border: 2px solid var(--gold); background: var(--white); font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--ink); outline: none; }
+  .price-note { font-size: 0.7rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  .ebay-badge { display: inline-flex; align-items: center; gap: 0.35rem; background: var(--ink); color: white; padding: 0.2rem 0.65rem; font-family: 'DM Mono', monospace; font-size: 0.68rem; margin-bottom: 1rem; }
+  .listing-title-preview { font-family: 'Playfair Display', serif; font-size: 0.97rem; margin-bottom: 0.85rem; line-height: 1.4; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; }
+
+  .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem; animation: fadeUp 0.4s ease; }
+  .btn { padding: 0.75rem 1rem; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.86rem; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.45rem; }
+  .btn-primary { background: var(--ink); color: white; }
+  .btn-primary:hover { background: #2d2520; }
+  .btn-secondary { background: var(--cream); color: var(--ink); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-ebay { background: #e53238; color: white; width: 100%; font-size: 0.9rem; padding: 0.88rem; font-family: 'DM Sans', sans-serif; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s; animation: fadeUp 0.4s ease; }
+  .btn-ebay:hover:not(:disabled) { background: #c02830; }
+  .btn-ebay:disabled { background: var(--muted); cursor: not-allowed; }
+
+  .ebay-connect-hint { background: rgba(196,98,45,0.06); border: 1px solid rgba(196,98,45,0.18); padding: 0.8rem 1rem; font-family: 'DM Mono', monospace; font-size: 0.73rem; color: var(--rust); margin-bottom: 0.75rem; line-height: 1.6; cursor: pointer; animation: fadeUp 0.4s ease; }
+  .ebay-connect-hint span { text-decoration: underline; }
+
+  .upload-progress { display: none; padding: 1.4rem; text-align: center; background: var(--white); border: 1px solid var(--border); margin-bottom: 0.75rem; animation: fadeUp 0.3s ease; }
+  .progress-bar-wrap { background: var(--cream); height: 3px; margin: 0.65rem 0; border-radius: 2px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--rust); width: 0%; transition: width 0.5s ease; border-radius: 2px; }
+  .upload-progress .upload-status { color: var(--rust); font-size: 0.8rem; font-family: 'DM Mono', monospace; margin-bottom: 0.3rem; font-weight: 500; }
+  .upload-progress .upload-detail { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+
+  .ebay-success { display: none; background: rgba(90,122,106,0.07); border: 1px solid rgba(90,122,106,0.28); padding: 1.1rem 1.4rem; margin-bottom: 0.75rem; animation: fadeUp 0.3s ease; }
+  .ebay-success h3 { font-family: 'Playfair Display', serif; color: var(--sage); margin-bottom: 0.35rem; font-size: 1.05rem; }
+  .ebay-success p { font-size: 0.78rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .ebay-success a { color: var(--sage); text-decoration: underline; font-size: 0.78rem; }
+
+  .books-section { margin-top: 2.5rem; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.6rem; border-bottom: 2px solid var(--ink); }
+  .section-header h2 { font-family: 'Playfair Display', serif; font-size: 1.1rem; }
+  .book-count { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  .books-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.8rem; }
+  .book-card { background: var(--white); border: 1px solid var(--border); padding: 0.8rem; transition: border-color 0.2s, transform 0.2s; animation: fadeUp 0.3s ease; }
+  .book-card:hover { border-color: var(--rust); transform: translateY(-2px); }
+  .book-card-img { width: 100%; height: 110px; object-fit: contain; background: var(--cream); margin-bottom: 0.6rem; border: 1px solid var(--border); }
+  .book-card-title { font-family: 'Playfair Display', serif; font-size: 0.82rem; margin-bottom: 0.12rem; line-height: 1.3; }
+  .book-card-author { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.4rem; font-family: 'DM Mono', monospace; }
+  .book-card-footer { display: flex; align-items: center; justify-content: space-between; }
+  .book-card-price { font-family: 'Playfair Display', serif; font-size: 0.95rem; color: var(--rust); }
+  .status-badge { font-family: 'DM Mono', monospace; font-size: 0.6rem; padding: 0.12rem 0.4rem; }
+  .status-badge.draft { background: rgba(184,148,31,0.12); color: var(--gold); }
+  .status-badge.listed { background: rgba(90,122,106,0.12); color: var(--sage); }
+
+  .empty-books { text-align: center; padding: 2.25rem; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.8rem; border: 1px dashed var(--border); background: var(--cream); }
+  .empty-books .empty-icon { font-size: 2rem; margin-bottom: 0.75rem; display: block; }
+  #placeholder-panel { padding: 3rem 2rem; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.8rem; border: 1px dashed var(--border); background: var(--cream); }
+
+  .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--ink); color: var(--paper); padding: 0.75rem 1.3rem; font-family: 'DM Mono', monospace; font-size: 0.78rem; z-index: 1000; transform: translateY(100px); opacity: 0; transition: all 0.3s ease; border-left: 4px solid var(--sage); max-width: 320px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-left-color: var(--rust); }
+
+  @media (max-width: 800px) {
+    .two-col { grid-template-columns: 1fr; }
+    .meta-grid { grid-template-columns: 1fr; }
+    .action-row { grid-template-columns: 1fr; }
+    header { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">B</div>
+  <div>
+    <h1>BookSell Assistant</h1>
+    <p>KI-gestützter Buchverkauf · eBay-Optimiert</p>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill">Eingestellt: <span id="listed-count">0</span></div>
+    <div class="stat-pill">Gesamt: <span id="total-count">0</span></div>
+    <button class="btn-settings" onclick="openSettings()">⚙ Einstellungen</button>
+  </div>
+</header>
+
+<div class="ebay-status-banner disconnected" id="ebay-banner">
+  <div class="status-dot"></div>
+  <span id="ebay-banner-text">Einstellungen öffnen um API Keys einzutragen</span>
+  <span class="banner-link" onclick="openSettings()" id="banner-link-text">Jetzt verbinden →</span>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSettings()">✕</button>
+    <h2>Einstellungen</h2>
+    <p>Trage zuerst deinen Claude API Key ein (für die Buchanalyse), und optional den eBay Token für den Direktupload.</p>
+    <div class="steps-mini">
+      <strong>Claude API Key holen:</strong><br>
+      1. <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> öffnen<br>
+      2. „API Keys" → „Create Key" klicken<br>
+      3. Key kopieren (beginnt mit sk-ant-...)
+    </div>
+    <div class="modal-field">
+      <label>Claude API Key ✱ (Pflichtfeld für Analyse)</label>
+      <input type="password" id="claude-api-key" placeholder="sk-ant-api03-...">
+      <div class="hint">Für die KI-Buchanalyse · nur lokal gespeichert, nie übertragen</div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.1rem 0 1rem;">
+    <div class="steps-mini">
+      <strong>eBay (optional, für Direktupload):</strong><br>
+      1. <a href="https://developer.ebay.com" target="_blank">developer.ebay.com</a> → kostenlos registrieren<br>
+      2. „Application Keys" → neue App anlegen<br>
+      3. „User Tokens" → Token generieren und kopieren
+    </div>
+    <div class="modal-field">
+      <label>eBay User Access Token</label>
+      <input type="password" id="ebay-token" placeholder="v^1.1#i^1#f^0#r^0#p^3…">
+      <div class="hint">Aus Developer Portal → User Tokens → OAuth User Token</div>
+    </div>
+    <div class="modal-field">
+      <label>App ID (Client ID)</label>
+      <input type="text" id="ebay-app-id" placeholder="DeinName-BookSell-PRD-xxxxxxxx-xxxxxxxx">
+      <div class="hint">Aus Developer Portal → Application Keys → App ID (Production)</div>
+    </div>
+    <div class="modal-field">
+      <label>PayPal E-Mail (für Zahlungsabwicklung)</label>
+      <input type="email" id="ebay-paypal" placeholder="deine@email.de">
+    </div>
+    <div class="modal-field">
+      <label>Postleitzahl (Standort)</label>
+      <input type="text" id="ebay-plz" placeholder="z.B. 79108">
+    </div>
+    <div class="modal-field">
+      <label>Marketplace</label>
+      <select id="ebay-marketplace">
+        <option value="EBAY_DE">eBay Deutschland (ebay.de)</option>
+        <option value="EBAY_AT">eBay Österreich (ebay.at)</option>
+        <option value="EBAY_GB">eBay UK (ebay.co.uk)</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveSettings()" style="flex:1">✓ Speichern & Verbinden</button>
+      <button class="btn btn-secondary" onclick="closeSettings()">Abbrechen</button>
+    </div>
+    <p class="modal-note">Token wird nur lokal in deinem Browser gespeichert und nie an Dritte übertragen.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="two-col">
+
+    <!-- Upload Panel -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">
+          <div class="step-badge">1</div>
+          Cover hochladen
+        </div>
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" accept="image/*">
+          <span class="drop-icon">📚</span>
+          <h3>Cover hier ablegen</h3>
+          <p>oder klicken zum Auswählen<br>JPG, PNG, HEIC · max. 20 MB</p>
+        </div>
+        <div id="preview-container">
+          <img id="book-preview" src="" alt="Book Cover">
+          <div class="preview-replace" onclick="document.getElementById('file-input').click()">↺ Anderes Bild wählen</div>
+        </div>
+        <button class="btn-analyze" id="analyze-btn" onclick="analyzeBook()" disabled>
+          <div class="spinner" id="btn-spinner"></div>
+          <span id="btn-text">🔍 Buch analysieren</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div>
+      <div class="loading-state" id="loading-state">
+        <div class="big-spinner"></div>
+        <p>KI analysiert das Cover...</p>
+        <div class="loading-steps">
+          <div class="loading-step" id="step-1"><span>🔍</span> Cover erkennen & ISBN suchen</div>
+          <div class="loading-step" id="step-2"><span>📖</span> Buchinfos recherchieren</div>
+          <div class="loading-step" id="step-3"><span>💰</span> Marktpreis ermitteln</div>
+          <div class="loading-step" id="step-4"><span>✍️</span> eBay-Listing vorbereiten</div>
+        </div>
+      </div>
+
+      <div class="results-panel" id="results-panel">
+
+        <div class="info-card">
+          <div class="panel-title" style="margin-bottom:0.85rem;">
+            <div class="step-badge" style="background:var(--sage)">2</div>
+            Buchinfos (bearbeitbar)
+          </div>
+          <div class="book-title-display" id="res-title">—</div>
+          <div class="book-author-display" id="res-author">—</div>
+          <div class="meta-grid">
+            <div class="meta-item"><label>Verlag</label><div class="val" id="res-publisher">—</div></div>
+            <div class="meta-item"><label>Jahr</label><div class="val" id="res-year">—</div></div>
+            <div class="meta-item"><label>ISBN</label><div class="val" id="res-isbn">—</div></div>
+            <div class="meta-item"><label>Genre</label><div class="val" id="res-genre">—</div></div>
+          </div>
+          <div class="description-block" id="res-description">—</div>
+          <div class="field-group">
+            <label>eBay-Titel (max. 80 Zeichen) <span id="title-chars" style="color:var(--rust)"></span></label>
+            <input type="text" id="edit-title" maxlength="80" placeholder="Buchtitel für eBay">
+          </div>
+          <div class="field-group">
+            <label>Beschreibung</label>
+            <textarea id="edit-description" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="price-section">
+          <div class="panel-title" style="margin-bottom:0.85rem;">
+            <div class="step-badge" style="background:var(--gold)">3</div>
+            Preisempfehlung
+          </div>
+          <div class="price-row">
+            <div class="price-suggested">
+              <span class="plabel">KI-Empfehlung</span>
+              <div class="price-big" id="suggested-price">—</div>
+            </div>
+            <div class="price-input-wrap">
+              <label>Dein Preis (€)</label>
+              <input type="number" id="final-price" step="0.50" min="0.50" placeholder="z.B. 4.50">
+            </div>
+          </div>
+          <div class="price-note" id="price-note">Basierend auf aktuellen Marktpreisen</div>
+        </div>
+
+        <div class="listing-preview">
+          <div class="panel-title" style="margin-bottom:0.85rem;">
+            <div class="step-badge">4</div>
+            Listing-Details
+          </div>
+          <div class="ebay-badge">📦 eBay Festpreis · Büchersendung</div>
+          <div class="listing-title-preview" id="listing-title-preview">—</div>
+          <div class="field-group">
+            <label>Zustand</label>
+            <select id="condition-select">
+              <option value="3000">Sehr gut — minimale Gebrauchsspuren</option>
+              <option value="4000">Gut — normale Gebrauchsspuren</option>
+              <option value="5000">Akzeptabel — sichtbare Gebrauchsspuren</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Versand</label>
+            <select id="shipping-select">
+              <option value="2.50">Büchersendung — € 2,50</option>
+              <option value="4.99">Hermes Paket — € 4,99</option>
+              <option value="0.00">Kostenloser Versand</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="btn btn-secondary" onclick="copyListing()">📋 Text kopieren</button>
+          <button class="btn btn-primary" onclick="saveDraft()">✓ Entwurf speichern</button>
+        </div>
+
+        <div class="ebay-connect-hint" id="ebay-hint" onclick="openSettings()">
+          ⚠ eBay nicht verbunden. <span>Klicke hier</span>, um deinen API-Token einzurichten — dann kannst du Bücher direkt einstellen.
+        </div>
+
+        <div class="upload-progress" id="upload-progress">
+          <div class="upload-status" id="upload-status">Verbinde mit eBay...</div>
+          <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+          <div class="upload-detail" id="upload-detail">Bitte warten...</div>
+        </div>
+
+        <div class="ebay-success" id="ebay-success">
+          <h3>✓ Erfolgreich auf eBay eingestellt!</h3>
+          <p style="margin-bottom:0.4rem;">Listing-ID: <strong id="listing-id">—</strong></p>
+          <a id="listing-link" href="#" target="_blank">Listing auf eBay ansehen →</a>
+        </div>
+
+        <button class="btn btn-ebay" id="ebay-upload-btn" onclick="uploadToEbay()" disabled>
+          🛒 Direkt auf eBay einstellen
+        </button>
+
+      </div>
+
+      <div id="placeholder-panel">
+        <span style="font-size:2.8rem;display:block;margin-bottom:0.9rem;">📖</span>
+        Lade ein Buchcover hoch und klicke<br>auf „Buch analysieren" — der Rest geht automatisch.
+      </div>
+    </div>
+  </div>
+
+  <!-- Book Collection -->
+  <div class="books-section">
+    <div class="section-header">
+      <h2>Meine Bücher</h2>
+      <span class="book-count" id="collection-count">0 Bücher</span>
+    </div>
+    <div id="books-grid" class="books-grid">
+      <div class="empty-books"><span class="empty-icon">🗂️</span>Noch keine Bücher gespeichert.</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentBook = null;
+let currentImageBase64 = null;
+let currentImageMimeType = 'image/jpeg';
+let books = [];
+try { books = JSON.parse(localStorage.getItem('booksell_books') || '[]'); } catch(e) {}
+
+let claudeApiKey = localStorage.getItem('claude_api_key') || '';
+let ebayToken = localStorage.getItem('ebay_token') || '';
+let ebayAppId = localStorage.getItem('ebay_app_id') || '';
+let ebayPaypal = localStorage.getItem('ebay_paypal') || '';
+let ebayPlz = localStorage.getItem('ebay_plz') || '79000';
+let ebayMarketplace = localStorage.getItem('ebay_marketplace') || 'EBAY_DE';
+
+updateEbayStatus();
+renderBooks();
+updateStats();
+
+// ── Settings ───────────────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('claude-api-key').value = claudeApiKey;
+  document.getElementById('ebay-token').value = ebayToken;
+  document.getElementById('ebay-app-id').value = ebayAppId;
+  document.getElementById('ebay-paypal').value = ebayPaypal;
+  document.getElementById('ebay-plz').value = ebayPlz;
+  document.getElementById('ebay-marketplace').value = ebayMarketplace;
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+function saveSettings() {
+  claudeApiKey = document.getElementById('claude-api-key').value.trim();
+  ebayToken = document.getElementById('ebay-token').value.trim();
+  ebayAppId = document.getElementById('ebay-app-id').value.trim();
+  ebayPaypal = document.getElementById('ebay-paypal').value.trim();
+  ebayPlz = document.getElementById('ebay-plz').value.trim();
+  ebayMarketplace = document.getElementById('ebay-marketplace').value;
+  localStorage.setItem('claude_api_key', claudeApiKey);
+  localStorage.setItem('ebay_token', ebayToken);
+  localStorage.setItem('ebay_app_id', ebayAppId);
+  localStorage.setItem('ebay_paypal', ebayPaypal);
+  localStorage.setItem('ebay_plz', ebayPlz);
+  localStorage.setItem('ebay_marketplace', ebayMarketplace);
+  closeSettings();
+  updateEbayStatus();
+  showToast('✓ Einstellungen gespeichert');
+}
+document.getElementById('settings-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSettings(); });
+
+function updateEbayStatus() {
+  const banner = document.getElementById('ebay-banner');
+  const bannerText = document.getElementById('ebay-banner-text');
+  const hint = document.getElementById('ebay-hint');
+  const btn = document.getElementById('ebay-upload-btn');
+  const ebayConnected = !!(ebayToken && ebayAppId);
+  const claudeReady = !!claudeApiKey;
+  if (!claudeReady) {
+    banner.className = 'ebay-status-banner disconnected';
+    bannerText.textContent = '⚠ Claude API Key fehlt — bitte in Einstellungen eintragen';
+  } else if (ebayConnected) {
+    banner.className = 'ebay-status-banner connected';
+    bannerText.textContent = '✓ Claude verbunden · eBay verbunden · Direkter Upload aktiv';
+  } else {
+    banner.className = 'ebay-status-banner disconnected';
+    bannerText.textContent = '✓ Claude verbunden · eBay nicht verbunden (optional)';
+  }
+  document.getElementById('banner-link-text').textContent = 'Einstellungen →';
+  if (hint) hint.style.display = ebayConnected ? 'none' : 'block';
+  if (btn) btn.disabled = !ebayConnected || !currentBook;
+}
+
+// ── File Handling ──────────────────────────────────────────────────────────
+const fileInput = document.getElementById('file-input');
+const dropZone = document.getElementById('drop-zone');
+fileInput.addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) processFile(f);
+});
+
+function processFile(file) {
+  // Always convert to JPEG via canvas for maximum API compatibility
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    // Use canvas to normalise any format (HEIC shown as image by browser, PNG, WebP, etc.) → JPEG
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Scale down if very large (API limit & speed)
+      const MAX = 1600;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+      currentImageBase64 = jpegDataUrl.split(',')[1];
+      currentImageMimeType = 'image/jpeg';
+      document.getElementById('book-preview').src = jpegDataUrl;
+      document.getElementById('preview-container').style.display = 'block';
+      document.getElementById('analyze-btn').disabled = false;
+      document.getElementById('results-panel').style.display = 'none';
+      document.getElementById('placeholder-panel').style.display = 'none';
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('ebay-success').style.display = 'none';
+      document.getElementById('upload-progress').style.display = 'none';
+      currentBook = null;
+      document.getElementById('ebay-upload-btn').disabled = true;
+    };
+    img.onerror = () => {
+      // Fallback: use raw data if canvas fails
+      currentImageBase64 = dataUrl.split(',')[1];
+      currentImageMimeType = file.type || 'image/jpeg';
+      document.getElementById('book-preview').src = dataUrl;
+      document.getElementById('preview-container').style.display = 'block';
+      document.getElementById('analyze-btn').disabled = false;
+      document.getElementById('results-panel').style.display = 'none';
+      document.getElementById('placeholder-panel').style.display = 'block';
+      currentBook = null;
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Step Animation ─────────────────────────────────────────────────────────
+function animateSteps() {
+  const ids = ['step-1','step-2','step-3','step-4'];
+  ids.forEach(id => { document.getElementById(id).className = 'loading-step'; });
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i > 0) document.getElementById(ids[i-1]).className = 'loading-step done';
+    if (i < ids.length) { document.getElementById(ids[i]).className = 'loading-step active'; i++; }
+    else clearInterval(iv);
+  }, 1100);
+  return iv;
+}
+
+// ── Analyze ────────────────────────────────────────────────────────────────
+async function analyzeBook() {
+  if (!currentImageBase64) return;
+  if (!claudeApiKey) {
+    openSettings();
+    showToast('⚠ Bitte zuerst Claude API Key eintragen', true);
+    return;
+  }
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('btn-spinner').style.display = 'block';
+  document.getElementById('btn-text').textContent = 'Analysiere...';
+  document.getElementById('results-panel').style.display = 'none';
+  document.getElementById('placeholder-panel').style.display = 'none';
+  document.getElementById('loading-state').style.display = 'block';
+  document.getElementById('ebay-success').style.display = 'none';
+
+  const iv = animateSteps();
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': claudeApiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: currentImageMimeType, data: currentImageBase64 } },
+            { type: 'text', text: `Analyze this book cover. Return ONLY valid JSON, no other text:
+{
+  "title": "full book title",
+  "author": "author full name",
+  "publisher": "publisher or Unknown",
+  "year": "year or Unknown",
+  "isbn": "ISBN if visible, else Unknown",
+  "genre": "Crime/Thriller/Mystery/etc in English",
+  "description": "2-3 sentence engaging description for German eBay buyers",
+  "ebay_title": "eBay title max 80 chars with author, title, key terms",
+  "suggested_price_eur": 4.50,
+  "price_reasoning": "1 sentence why this price",
+  "ebay_category_id": "267"
+}
+Price range for used English paperbacks on ebay.de: typically €2.50-€8.00. Return ONLY the JSON object.` }
+          ]
+        }]
+      })
+    });
+
+    clearInterval(iv);
+    ['step-1','step-2','step-3','step-4'].forEach(id => { document.getElementById(id).className = 'loading-step done'; });
+
+    // Check HTTP status first
+    if (!res.ok) {
+      let errMsg = `HTTP ${res.status}`;
+      try { const e = await res.json(); errMsg = e.error?.message || errMsg; } catch {}
+      throw new Error(errMsg);
+    }
+
+    const data = await res.json();
+
+    // Check for API-level errors
+    if (data.error) throw new Error(`${data.error.type}: ${data.error.message}`);
+    if (!data.content || !data.content.length) throw new Error('Leere Antwort von der API');
+
+    const raw = data.content.map(b => b.text || '').join('');
+    if (!raw.trim()) throw new Error('Keine Textantwort erhalten');
+
+    let book;
+    try { book = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+    catch { const m = raw.match(/\{[\s\S]*\}/); if (m) book = JSON.parse(m[0]); else throw new Error('JSON konnte nicht gelesen werden: ' + raw.slice(0, 60)); }
+
+    currentBook = book;
+    displayResults(book);
+  } catch(err) {
+    clearInterval(iv);
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('placeholder-panel').style.display = 'block';
+    const msg = err.message || 'Unbekannter Fehler';
+    showToast('❌ ' + msg.slice(0, 90), true);
+    console.error('Analyse-Fehler:', err);
+  } finally {
+    document.getElementById('analyze-btn').disabled = false;
+    document.getElementById('btn-spinner').style.display = 'none';
+    document.getElementById('btn-text').textContent = '🔍 Buch analysieren';
+  }
+}
+
+function displayResults(book) {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('results-panel').style.display = 'block';
+
+  document.getElementById('res-title').textContent = book.title || '—';
+  document.getElementById('res-author').textContent = book.author || '—';
+  document.getElementById('res-publisher').textContent = book.publisher || '—';
+  document.getElementById('res-year').textContent = book.year || '—';
+  document.getElementById('res-isbn').textContent = book.isbn || '—';
+  document.getElementById('res-genre').textContent = book.genre || '—';
+  document.getElementById('res-description').textContent = book.description || '—';
+  document.getElementById('edit-title').value = book.ebay_title || book.title || '';
+  document.getElementById('edit-description').value = book.description || '';
+
+  const price = book.suggested_price_eur || 4.50;
+  document.getElementById('suggested-price').textContent = `€ ${price.toFixed(2)}`;
+  document.getElementById('final-price').value = price.toFixed(2);
+  document.getElementById('price-note').textContent = book.price_reasoning || '';
+
+  updatePreview();
+  document.getElementById('edit-title').addEventListener('input', () => { updatePreview(); updateCharCount(); });
+  document.getElementById('final-price').addEventListener('input', updatePreview);
+  updateCharCount();
+  updateEbayStatus();
+}
+
+function updatePreview() {
+  const t = document.getElementById('edit-title').value;
+  document.getElementById('listing-title-preview').textContent = t || '—';
+}
+function updateCharCount() {
+  const len = document.getElementById('edit-title').value.length;
+  document.getElementById('title-chars').textContent = `${len}/80`;
+}
+
+// ── eBay Upload ────────────────────────────────────────────────────────────
+async function uploadToEbay() {
+  if (!currentBook || !ebayToken) return;
+
+  const title = document.getElementById('edit-title').value;
+  const description = document.getElementById('edit-description').value;
+  const price = parseFloat(document.getElementById('final-price').value) || 4.50;
+  const conditionId = document.getElementById('condition-select').value;
+  const shippingCost = parseFloat(document.getElementById('shipping-select').value);
+
+  document.getElementById('ebay-success').style.display = 'none';
+  document.getElementById('upload-progress').style.display = 'block';
+  document.getElementById('ebay-upload-btn').disabled = true;
+
+  const setP = (pct, status, detail) => {
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('upload-status').textContent = status;
+    document.getElementById('upload-detail').textContent = detail;
+  };
+
+  try {
+    setP(10, 'Verbinde mit eBay...', 'Token wird geprüft');
+    await sleep(350);
+    setP(30, 'Listing wird erstellt...', 'eBay Trading API · AddItem');
+    await sleep(300);
+
+    const listingHtml = buildHtmlDesc(currentBook, description);
+    const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
+<AddItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials><eBayAuthToken>${ebayToken}</eBayAuthToken></RequesterCredentials>
+  <ErrorLanguage>de_DE</ErrorLanguage>
+  <WarningLevel>High</WarningLevel>
+  <Item>
+    <Title>${escXml(title)}</Title>
+    <Description><![CDATA[${listingHtml}]]></Description>
+    <PrimaryCategory><CategoryID>${currentBook.ebay_category_id || '267'}</CategoryID></PrimaryCategory>
+    <StartPrice currencyID="EUR">${price.toFixed(2)}</StartPrice>
+    <Country>DE</Country>
+    <Currency>EUR</Currency>
+    <DispatchTimeMax>3</DispatchTimeMax>
+    <ListingDuration>GTC</ListingDuration>
+    <ListingType>FixedPriceItem</ListingType>
+    <PaymentMethods>PayPal</PaymentMethods>
+    <PayPalEmailAddress>${escXml(ebayPaypal || 'noreply@example.de')}</PayPalEmailAddress>
+    <PostalCode>${escXml(ebayPlz || '79000')}</PostalCode>
+    <Quantity>1</Quantity>
+    <ConditionID>${conditionId}</ConditionID>
+    <ConditionDescription>${escXml(condDesc(conditionId))}</ConditionDescription>
+    <ReturnPolicy>
+      <ReturnsAcceptedOption>ReturnsAccepted</ReturnsAcceptedOption>
+      <RefundOption>MoneyBack</RefundOption>
+      <ReturnsWithinOption>Days_14</ReturnsWithinOption>
+      <ShippingCostPaidByOption>Buyer</ShippingCostPaidByOption>
+    </ReturnPolicy>
+    <ShippingDetails>
+      <ShippingType>Flat</ShippingType>
+      <ShippingServiceOptions>
+        <ShippingServicePriority>1</ShippingServicePriority>
+        <ShippingService>${shippingCost > 3 ? 'DE_Hermes_Paket' : 'DE_BuecherWarensendung'}</ShippingService>
+        <ShippingServiceCost currencyID="EUR">${shippingCost.toFixed(2)}</ShippingServiceCost>
+      </ShippingServiceOptions>
+    </ShippingDetails>
+    <Site>Germany</Site>
+    <Language>de_DE</Language>
+  </Item>
+</AddItemRequest>`;
+
+    setP(55, 'Anfrage an eBay wird gesendet...', 'Trading API · AddItem');
+
+    const apiRes = await fetch('https://api.ebay.com/ws/api.dll', {
+      method: 'POST',
+      headers: {
+        'X-EBAY-API-SITEID': '77',
+        'X-EBAY-API-COMPATIBILITY-LEVEL': '967',
+        'X-EBAY-API-CALL-NAME': 'AddItem',
+        'X-EBAY-API-IAF-TOKEN': ebayToken,
+        'Content-Type': 'text/xml;charset=utf-8'
+      },
+      body: xmlBody
+    });
+
+    const xmlText = await apiRes.text();
+    setP(80, 'Antwort wird verarbeitet...', '');
+
+    // Check for errors in XML response
+    const errMatch = xmlText.match(/<LongMessage>(.*?)<\/LongMessage>/s);
+    const ackMatch = xmlText.match(/<Ack>(.*?)<\/Ack>/);
+    const itemIdMatch = xmlText.match(/<ItemID>(\d+)<\/ItemID>/);
+
+    if (ackMatch && (ackMatch[1] === 'Failure' || ackMatch[1] === 'PartialFailure') && !itemIdMatch) {
+      throw new Error(errMatch ? errMatch[1] : `eBay Fehler (${ackMatch[1]})`);
+    }
+
+    if (!itemIdMatch) {
+      // Could be CORS or token issue
+      throw new Error('Keine Item-ID in Antwort. Prüfe Token und PayPal-Email.');
+    }
+
+    const itemId = itemIdMatch[1];
+    setP(100, '✓ Erfolgreich eingestellt!', `Item ID: ${itemId}`);
+    await sleep(400);
+
+    showSuccess(itemId);
+    saveBookListed(itemId);
+
+  } catch(err) {
+    document.getElementById('upload-progress').style.display = 'none';
+    document.getElementById('ebay-upload-btn').disabled = false;
+    console.error('eBay Error:', err);
+
+    const msg = err.message || '';
+    if (msg.includes('token') || msg.includes('Token') || msg.includes('401') || msg.includes('403')) {
+      showToast('❌ Token ungültig — bitte erneuern.', true);
+      setTimeout(openSettings, 1600);
+    } else if (msg.includes('CORS') || msg.includes('fetch') || msg.includes('NetworkError')) {
+      showToast('⚠ CORS-Fehler: eBay API nur über Backend erreichbar. Nutze "Text kopieren".', true);
+    } else {
+      showToast('⚠ ' + msg.slice(0, 80), true);
+    }
+  }
+}
+
+function showSuccess(itemId) {
+  document.getElementById('upload-progress').style.display = 'none';
+  document.getElementById('ebay-success').style.display = 'block';
+  document.getElementById('listing-id').textContent = itemId;
+  const domain = ebayMarketplace === 'EBAY_AT' ? 'ebay.at' : ebayMarketplace === 'EBAY_GB' ? 'ebay.co.uk' : 'ebay.de';
+  const url = `https://www.${domain}/itm/${itemId}`;
+  const link = document.getElementById('listing-link');
+  link.href = url; link.textContent = `Listing auf ${domain} ansehen →`;
+  showToast('✓ Buch auf eBay eingestellt!');
+}
+
+function saveBookListed(itemId) {
+  if (!currentBook) return;
+  const book = {
+    id: Date.now(),
+    title: document.getElementById('edit-title').value || currentBook.title,
+    author: currentBook.author, price: parseFloat(document.getElementById('final-price').value),
+    genre: currentBook.genre, isbn: currentBook.isbn,
+    status: 'listed', listingId: itemId,
+    image: document.getElementById('book-preview').src,
+    savedAt: new Date().toLocaleDateString('de-DE')
+  };
+  books.unshift(book);
+  try { localStorage.setItem('booksell_books', JSON.stringify(books)); } catch(e) {}
+  renderBooks(); updateStats();
+}
+
+function buildHtmlDesc(book, customDesc) {
+  return `<div style="font-family:Arial,sans-serif;color:#333;max-width:680px;line-height:1.6;">
+<h2 style="margin:0 0 8px;color:#1a1a1a;">${book.title || ''}</h2>
+<p style="margin:0 0 12px;color:#666;font-size:14px;">von <strong>${book.author || ''}</strong></p>
+<table style="font-size:13px;border-collapse:collapse;margin-bottom:14px;width:100%;">
+<tr><td style="padding:4px 12px 4px 0;color:#888;white-space:nowrap;">Verlag</td><td>${book.publisher || '—'}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#888;">Jahr</td><td>${book.year || '—'}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#888;">ISBN</td><td>${book.isbn || '—'}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#888;">Genre</td><td>${book.genre || '—'}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;color:#888;">Sprache</td><td>Englisch</td></tr>
+</table>
+<p style="font-size:14px;color:#444;font-style:italic;border-left:3px solid #ddd;padding-left:12px;margin:0 0 16px;">${customDesc || book.description || ''}</p>
+<hr style="border:none;border-top:1px solid #eee;margin-bottom:12px;">
+<p style="font-size:12px;color:#999;">✓ Privatverkauf · Versand als Büchersendung oder Paket · Zahlung per PayPal</p>
+</div>`;
+}
+
+function condDesc(id) {
+  return id === '3000' ? 'Sehr gut erhalten, kaum Gebrauchsspuren'
+       : id === '4000' ? 'Gut erhalten, normale Gebrauchsspuren'
+       : 'Akzeptabler Zustand, sichtbare Gebrauchsspuren';
+}
+
+function escXml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Copy & Save ────────────────────────────────────────────────────────────
+function copyListing() {
+  if (!currentBook) return;
+  const t = document.getElementById('edit-title').value;
+  const d = document.getElementById('edit-description').value;
+  const p = document.getElementById('final-price').value;
+  const cond = document.getElementById('condition-select').selectedOptions[0].text;
+  const ship = document.getElementById('shipping-select').selectedOptions[0].text;
+  navigator.clipboard.writeText(
+    `TITEL: ${t}\nPREIS: € ${p}\nZUSTAND: ${cond}\nVERSAND: ${ship}\n\nBESCHREIBUNG:\n${d}\n\nAutor: ${currentBook.author}\nVerlag: ${currentBook.publisher} | Jahr: ${currentBook.year}\nISBN: ${currentBook.isbn}\nSprache: Englisch | Genre: ${currentBook.genre}`
+  ).then(() => showToast('✓ Listing-Text kopiert!'));
+}
+
+function saveDraft() {
+  if (!currentBook) return;
+  const book = {
+    id: Date.now(),
+    title: document.getElementById('edit-title').value || currentBook.title,
+    author: currentBook.author, price: parseFloat(document.getElementById('final-price').value) || currentBook.suggested_price_eur,
+    genre: currentBook.genre, isbn: currentBook.isbn,
+    status: 'draft', image: document.getElementById('book-preview').src,
+    savedAt: new Date().toLocaleDateString('de-DE')
+  };
+  books.unshift(book);
+  try { localStorage.setItem('booksell_books', JSON.stringify(books)); } catch(e) {}
+  renderBooks(); updateStats();
+  showToast('✓ Entwurf gespeichert!');
+  setTimeout(() => {
+    document.getElementById('results-panel').style.display = 'none';
+    document.getElementById('placeholder-panel').style.display = 'block';
+    document.getElementById('preview-container').style.display = 'none';
+    document.getElementById('analyze-btn').disabled = true;
+    currentBook = null; currentImageBase64 = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('ebay-upload-btn').disabled = true;
+  }, 700);
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderBooks() {
+  const g = document.getElementById('books-grid');
+  if (!books.length) { g.innerHTML = `<div class="empty-books"><span class="empty-icon">🗂️</span>Noch keine Bücher gespeichert.</div>`; return; }
+  g.innerHTML = books.map(b => `
+    <div class="book-card">
+      <img class="book-card-img" src="${b.image}" alt="${b.title}" onerror="this.style.display='none'">
+      <div class="book-card-title">${b.title}</div>
+      <div class="book-card-author">${b.author || '—'}</div>
+      <div class="book-card-footer">
+        <span class="book-card-price">€ ${(b.price||0).toFixed(2)}</span>
+        <span class="status-badge ${b.status}">${b.status === 'listed' ? '✓ Eingestellt' : 'Entwurf'}</span>
+      </div>
+      ${b.listingId ? `<div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:0.35rem;">ID: ${b.listingId}</div>` : ''}
+    </div>`).join('');
+}
+
+function updateStats() {
+  document.getElementById('total-count').textContent = books.length;
+  document.getElementById('listed-count').textContent = books.filter(b => b.status === 'listed').length;
+  document.getElementById('collection-count').textContent = `${books.length} ${books.length === 1 ? 'Buch' : 'Bücher'}`;
+}
+
+function showToast(msg, err = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast' + (err ? ' error' : ''); t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
